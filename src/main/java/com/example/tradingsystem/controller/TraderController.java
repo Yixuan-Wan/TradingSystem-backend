@@ -11,6 +11,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/trader")
+@CrossOrigin
 public class TraderController {
     @Autowired
     TraderService traderService;
@@ -22,5 +23,10 @@ public class TraderController {
     @PostMapping("/login")
     public ApiResponse login(@RequestBody LoginDTO loginDTO) {
         return traderService.login(loginDTO.getMail(),loginDTO.getPassword());
+    }
+
+    @PostMapping("/register")
+    public ApiResponse register(@RequestBody Trader trader) {
+        return traderService.register(trader);
     }
 }

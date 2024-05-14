@@ -1,17 +1,21 @@
 package com.example.tradingsystem.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.example.tradingsystem.common.ApiResponse;
+import com.example.tradingsystem.entity.MarketBuy;
 import com.example.tradingsystem.entity.MarketSell;
-import com.example.tradingsystem.entity.Order;
+import com.example.tradingsystem.entity.OrderLimit;
 import com.example.tradingsystem.mapper.MarketSellMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class MarketSellService {
     @Autowired
     MarketSellMapper marketSellMapper;
-    public void addOrderToMarket(Order order){
+    public void addOrderToMarket(OrderLimit order){
         if(order.getRemainQuantity()==0){
             return;
         }
@@ -51,5 +55,17 @@ public class MarketSellService {
             }
         }
 
+    }
+
+    public List<MarketSell> getMarketSell(int productId,int startLevel) {
+        QueryWrapper<MarketSell> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("product_id", productId).orderByAsc("price").last("LIMIT " + startLevel + ", 3");
+        return marketSellMapper.selectList(queryWrapper);
+    }
+
+    public Long getSellMarketNum(int productId){
+        QueryWrapper<MarketSell> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("product_id", productId);
+        return marketSellMapper.selectCount(queryWrapper);
     }
 }

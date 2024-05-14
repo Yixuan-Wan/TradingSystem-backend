@@ -6,13 +6,12 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 @Data
-@TableName("trader")
-public class Trader {
+@TableName("broker")
+public class Broker {
     @TableId(type = IdType.ASSIGN_ID)
-    private String traderId;
+    private String brokerId;
     private String name;
     private String password;
     private String mail;
     private String company;
 }
-

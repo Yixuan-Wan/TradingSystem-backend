@@ -20,14 +20,21 @@ public class TraderService {
     }
 
     public ApiResponse login(String mail, String password) {
-        QueryWrapper<Trader> wrapper = new QueryWrapper<>();
-        wrapper.eq("mail",mail).eq("password",password);
-        Trader trader = traderMapper.selectOne(wrapper);
-
+        QueryWrapper<Trader> wrapper1 = new QueryWrapper<>();
+        wrapper1.eq("mail",mail).eq("password",password);
+        Trader trader = traderMapper.selectOne(wrapper1);
         if (trader != null) {
-            return ApiResponse.success(trader);
+            return ApiResponse.success(trader.getTraderId());
         }
+
+
+
         return ApiResponse.fail(-1,"用户名或密码错误");
+    }
+
+    public ApiResponse register(Trader trader){
+        int result = traderMapper.insert(trader);
+        return ApiResponse.success(result);
     }
 
 

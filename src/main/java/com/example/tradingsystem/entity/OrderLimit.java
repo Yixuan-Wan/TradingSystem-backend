@@ -1,16 +1,15 @@
 package com.example.tradingsystem.entity;
 
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
+
+import java.util.Date;
 
 
 @Data
-@TableName("`order`")
-public class Order implements Comparable<Order> {
+@TableName("`order_limit`")
+public class OrderLimit implements Comparable<OrderLimit> {
 
     @TableId(type = IdType.ASSIGN_ID)
     private String orderId;
@@ -29,10 +28,14 @@ public class Order implements Comparable<Order> {
 
     private String traderId;
 
-    private Integer orderAlgorithm;
+    @TableField(fill = FieldFill.INSERT)
+    private Date createTime;
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private Date updateTime;
+
 
     @Override
-    public int compareTo(Order o) {
+    public int compareTo(OrderLimit o) {
         return (int) (this.price - o.price);
     }
 }
