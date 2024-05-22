@@ -75,4 +75,11 @@ public class MarketBuyService {
         return marketBuyMapper.selectCount(queryWrapper);
     }
 
+    public Long getHighestPrice(){
+        QueryWrapper<MarketBuy> queryWrapper = new QueryWrapper<>();
+        queryWrapper.select("MAX(price) as price");
+        MarketBuy result = marketBuyMapper.selectOne(queryWrapper);
+        return result != null ? result.getPrice() : null;
+    }
+
 }

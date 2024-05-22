@@ -1,11 +1,13 @@
 package com.example.tradingsystem.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.tradingsystem.DTO.OrderCancelDTO;
+import com.example.tradingsystem.DTO.OrderDetailDTO;
 import com.example.tradingsystem.DTO.OrderResultDTO;
 import com.example.tradingsystem.common.ApiResponse;
-import com.example.tradingsystem.entity.OrderCancel;
-import com.example.tradingsystem.entity.OrderLimit;
-import com.example.tradingsystem.entity.OrderMarket;
+import com.example.tradingsystem.common.PagedResponse;
+import com.example.tradingsystem.entity.*;
 import com.example.tradingsystem.mapper.OrderCancelMapper;
 import com.example.tradingsystem.mapper.OrderLimitMapper;
 import org.springframework.beans.BeanUtils;
@@ -57,5 +59,7 @@ public class OrderCancelService {
 
         return ApiResponse.success(orderResultDTO);
     }
+
+
 
 }

@@ -3,17 +3,22 @@ package com.example.tradingsystem.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.example.tradingsystem.DTO.OrderDetailDTO;
 import com.example.tradingsystem.DTO.OrderResultDTO;
 import com.example.tradingsystem.DTO.TransactionDTO;
 import com.example.tradingsystem.common.PagedResponse;
-import com.example.tradingsystem.entity.OrderCancel;
+import com.example.tradingsystem.entity.*;
 import com.example.tradingsystem.common.ApiResponse;
-import com.example.tradingsystem.entity.OrderLimit;
+import com.example.tradingsystem.mapper.BrokerMapper;
 import com.example.tradingsystem.mapper.OrderLimitMapper;
+import com.example.tradingsystem.mapper.ProductMapper;
+import com.example.tradingsystem.mapper.TraderMapper;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -27,6 +32,12 @@ public class OrderLimitService {
     MarketSellService marketSellService;
     @Autowired
     TransactionService transactionService;
+    @Autowired
+    TraderMapper traderMapper;
+    @Autowired
+    BrokerMapper brokerMapper;
+    @Autowired
+    ProductMapper productMapper;
     public ApiResponse createLimitOrder(OrderLimit order){
         orderLimitMapper.insert(order);
         ExecuteLimit(order);
@@ -186,11 +197,11 @@ public class OrderLimitService {
             orderResultDTO.setRes("Success");
             orderResultDTO.setDetail("Your limit order has been fully executed.");
         }else if(quantityRemain==quantityOrigin){
-            orderResultDTO.setRes("Failed");
-            orderResultDTO.setDetail("There is no order that meets your requirements in the corresponding market. Please come back later");
+            orderResultDTO.setRes("Pending");
+            orderResultDTO.setDetail("There is no order that meets your requirements in the corresponding market. Your order is pending on the market.");
         }else{
             orderResultDTO.setRes("Partly Success!");
-            orderResultDTO.setDetail("Your limit order has been partly executed.");
+            orderResultDTO.setDetail("Your limit order has been partly executed, the rest quantity is pending on the market.");
         }
 
         orderResultDTO.setList(transactionService.getTransactions(orderId));
@@ -198,7 +209,7 @@ public class OrderLimitService {
         return ApiResponse.success(orderResultDTO);
     }
 
-    public ApiResponse getOrderIdList(String traderId, String brokerId, Integer pageNo, Integer pageSize) {
+    public ApiResponse getOrderList(String traderId, String brokerId, Integer pageNo, Integer pageSize) {
         QueryWrapper<OrderLimit> wrapper = new QueryWrapper<>();
         if (traderId != null) {
             wrapper.eq("trader_id", traderId);
@@ -209,13 +220,33 @@ public class OrderLimitService {
         Page<OrderLimit> page = new Page<>(pageNo, pageSize);
         page = orderLimitMapper.selectPage(page, wrapper);
         List<OrderLimit> list = page.getRecords();
+        List<OrderDetailDTO> res = new ArrayList<>();
+        for(OrderLimit order : list){
+            OrderDetailDTO orderDetailDTO = new OrderDetailDTO();
+            Trader t = traderMapper.selectById(order.getTraderId());
+            Broker b = brokerMapper.selectById(order.getBrokerId());
+            Product p = productMapper.selectById(order.getProductId());
+            BeanUtils.copyProperties(order,orderDetailDTO);
+            orderDetailDTO.setBrokerName(b.getName());
+            orderDetailDTO.setTraderCompany(t.getCompany());
+            orderDetailDTO.setTraderName(t.getName());
+            orderDetailDTO.setProductName(p.getProductName());
+            if (order.getOrderType()==0){
+                orderDetailDTO.setOrderSide("buy");
+            }else {
+                orderDetailDTO.setOrderSide("sell");
+            }
+            res.add(orderDetailDTO);
+        }
 
-        PagedResponse<OrderLimit> response = new PagedResponse<>(
+        PagedResponse<OrderDetailDTO> response = new PagedResponse<>(
                 (int) page.getPages(),
                 (int) page.getCurrent(),
-                list
+                res
         );
         return ApiResponse.success(response);
     }
+
+
 }
 

@@ -68,4 +68,11 @@ public class MarketSellService {
         queryWrapper.eq("product_id", productId);
         return marketSellMapper.selectCount(queryWrapper);
     }
+
+    public Long getLowestPrice(){
+        QueryWrapper<MarketSell> queryWrapper = new QueryWrapper<>();
+        queryWrapper.select("MIN(price) as price");
+        MarketSell result = marketSellMapper.selectOne(queryWrapper);
+        return result != null ? result.getPrice() : null;
+    }
 }

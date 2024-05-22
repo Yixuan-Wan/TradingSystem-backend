@@ -1,15 +1,18 @@
 package com.example.tradingsystem.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.example.tradingsystem.DTO.OrderDetailDTO;
 import com.example.tradingsystem.DTO.OrderResultDTO;
 import com.example.tradingsystem.common.ApiResponse;
-import com.example.tradingsystem.entity.OrderLimit;
-import com.example.tradingsystem.entity.OrderMarket;
-import com.example.tradingsystem.mapper.OrderLimitMapper;
-import com.example.tradingsystem.mapper.OrderMarketMapper;
+import com.example.tradingsystem.common.PagedResponse;
+import com.example.tradingsystem.entity.*;
+import com.example.tradingsystem.mapper.*;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -25,7 +28,12 @@ public class OrderMarketService {
     MarketSellService marketSellService;
     @Autowired
     TransactionService transactionService;
-
+    @Autowired
+    TraderMapper traderMapper;
+    @Autowired
+    BrokerMapper brokerMapper;
+    @Autowired
+    ProductMapper productMapper;
     public ApiResponse createMarketOrder(OrderMarket order){
         orderMarketMapper.insert(order);
         ExecuteMarket(order);
@@ -48,7 +56,9 @@ public class OrderMarketService {
                 .eq("broker_id",order.getBrokerId())
                 .gt("remain_quantity",0);
 
-        executeBuyOrder(order, wrapper);
+        int remaining = executeBuyOrder(order, wrapper);
+        order.setRemainQuantity(remaining);
+        orderMarketMapper.updateById(order);
     }
     public void ExecuteMarketSell(OrderMarket order){
         QueryWrapper<OrderLimit> wrapper = new QueryWrapper<>();
@@ -57,13 +67,15 @@ public class OrderMarketService {
                 .eq("broker_id",order.getBrokerId())
                 .gt("remain_quantity",0);
 
-        executeSellOrder(order, wrapper);
+        int remaining = executeSellOrder(order, wrapper);
+        order.setRemainQuantity(remaining);
+        orderMarketMapper.updateById(order);
     }
 
-    private void executeBuyOrder(OrderMarket order, QueryWrapper<OrderLimit> wrapper) {
+    public int executeBuyOrder(OrderMarket order, QueryWrapper<OrderLimit> wrapper) {
         List<OrderLimit> list = orderLimitMapper.selectList(wrapper);
         if(list.isEmpty()){
-            return;
+            return order.getRemainQuantity();
         }
         Collections.sort(list);
         int remaining = order.getQuantity();
@@ -83,14 +95,15 @@ public class OrderMarketService {
             orderLimitMapper.updateById(sellOrder);
             marketSellService.deleteFromSellMarket(sellOrder.getProductId(), sellOrder.getPrice(), delete_vol);
         }
-        order.setRemainQuantity(remaining);
-        orderMarketMapper.updateById(order);
+//        order.setRemainQuantity(remaining);
+        return remaining;
+//        orderMarketMapper.updateById(order);
     }
 
-    private void executeSellOrder(OrderMarket order, QueryWrapper<OrderLimit> wrapper) {
+    public int executeSellOrder(OrderMarket order, QueryWrapper<OrderLimit> wrapper) {
         List<OrderLimit> orderBuys = orderLimitMapper.selectList(wrapper);
         if(orderBuys.isEmpty()){
-            return;
+            return order.getRemainQuantity();
         }
         Collections.sort(orderBuys);
         Collections.reverse(orderBuys);
@@ -111,8 +124,9 @@ public class OrderMarketService {
             orderLimitMapper.updateById(buyOrder);
             marketBuyService.deleteFromBuyMarket(buyOrder.getProductId(), buyOrder.getPrice(), delete_vol);
         }
-        order.setRemainQuantity(remaining);
-        orderMarketMapper.updateById(order);
+
+        return remaining;
+//        orderMarketMapper.updateById(order);
     }
 
     public ApiResponse getMarketOrderResult(String orderId){
@@ -142,4 +156,42 @@ public class OrderMarketService {
 
     }
 
+
+    public ApiResponse getOrderList(String traderId, String brokerId, Integer pageNo, Integer pageSize){
+        QueryWrapper<OrderMarket> wrapper = new QueryWrapper<>();
+        if (traderId != null) {
+            wrapper.eq("trader_id", traderId);
+        }
+        if (brokerId != null) {
+            wrapper.eq("broker_id", brokerId);
+        }
+        Page<OrderMarket> page = new Page<>(pageNo, pageSize);
+        page = orderMarketMapper.selectPage(page, wrapper);
+        List<OrderMarket> list = page.getRecords();
+        List<OrderDetailDTO> res = new ArrayList<>();
+        for(OrderMarket order : list){
+            OrderDetailDTO orderDetailDTO = new OrderDetailDTO();
+            Trader t = traderMapper.selectById(order.getTraderId());
+            Broker b = brokerMapper.selectById(order.getBrokerId());
+            Product p = productMapper.selectById(order.getProductId());
+            BeanUtils.copyProperties(order,orderDetailDTO);
+            orderDetailDTO.setBrokerName(b.getName());
+            orderDetailDTO.setTraderCompany(t.getCompany());
+            orderDetailDTO.setTraderName(t.getName());
+            orderDetailDTO.setProductName(p.getProductName());
+            if (order.getOrderType()==0){
+                orderDetailDTO.setOrderSide("buy");
+            }else {
+                orderDetailDTO.setOrderSide("sell");
+            }
+            res.add(orderDetailDTO);
+        }
+
+        PagedResponse<OrderDetailDTO> response = new PagedResponse<>(
+                (int) page.getPages(),
+                (int) page.getCurrent(),
+                res
+        );
+        return ApiResponse.success(response);
+    }
 }
